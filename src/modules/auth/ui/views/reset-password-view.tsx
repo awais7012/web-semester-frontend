@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Poppins } from "next/font/google";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -22,51 +22,54 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-import { loginSchema } from "../../schemas";
+import { resetPasswordSchema } from "../../schemas";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
-export const SignInView = () => {
+export const ResetPasswordView = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") ?? "";
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const login = useMutation(
-    trpc.auth.login.mutationOptions({
+  const resetPassword = useMutation(
+    trpc.auth.resetPassword.mutationOptions({
       onError: (error) => toast.error(error.message),
-      onSuccess: async (data) => {
+      onSuccess: async () => {
         await queryClient.invalidateQueries(trpc.auth.session.queryFilter());
-
-        // Role-based redirect after login
-        const roles: string[] = (data.user as { roles?: string[] })?.roles ?? [];
-
-        if (roles.includes("admin")) {
-          router.push("/admin");
-        } else if (roles.includes("vendor")) {
-          router.push("/vendor/dashboard");
-        } else {
-          router.push("/");
-        }
+        toast.success("Password reset! You are now logged in.");
+        router.push("/");
       },
     })
   );
 
-  const form = useForm<z.infer<typeof loginSchema>>({
+  const form = useForm<z.infer<typeof resetPasswordSchema>>({
     mode: "all",
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { token, password: "" },
   });
 
-  const onSubmit = (values: z.infer<typeof loginSchema>) => {
-    login.mutate(values);
-  };
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-[#F4F4F0] flex items-center justify-center p-4">
+        <div className="bg-white border-2 border-black rounded-xl p-8 max-w-md w-full text-center">
+          <h2 className="text-2xl font-semibold mb-3">Invalid link</h2>
+          <p className="text-gray-600 mb-6">This reset link is invalid or has expired.</p>
+          <Link href="/forgot-password" className="underline text-sm font-medium">
+            Request a new link
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5">
       <div className="bg-[#F4F4F0] h-screen w-full lg:col-span-3 overflow-y-auto">
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit((v) => resetPassword.mutate(v))}
             className="flex flex-col gap-8 p-4 lg:p-16"
           >
             <div className="flex items-center justify-between mb-8">
@@ -75,35 +78,15 @@ export const SignInView = () => {
                   funroad
                 </span>
               </Link>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="text-base border-none underline"
-              >
-                <Link prefetch href="/sign-up">Sign up</Link>
-              </Button>
             </div>
 
-            <h1 className="text-4xl font-medium">Welcome back to Funroad.</h1>
+            <h1 className="text-4xl font-medium">Set a new password</h1>
 
-            <FormField
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base">Email</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base">Password</FormLabel>
+                  <FormLabel className="text-base">New Password</FormLabel>
                   <FormControl>
                     <Input {...field} type="password" />
                   </FormControl>
@@ -112,34 +95,21 @@ export const SignInView = () => {
               )}
             />
 
-            <div className="flex justify-end">
-              <Link
-                href="/forgot-password"
-                className="text-sm underline text-gray-600 hover:text-black"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
             <Button
-              disabled={login.isPending}
+              disabled={resetPassword.isPending}
               type="submit"
               size="lg"
               variant="elevated"
               className="bg-black text-white hover:bg-pink-400 hover:text-primary"
             >
-              Log in
+              Reset password
             </Button>
           </form>
         </Form>
       </div>
       <div
         className="h-screen w-full lg:col-span-2 hidden lg:block"
-        style={{
-          backgroundImage: "url('/auth-bg.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
+        style={{ backgroundImage: "url('/auth-bg.png')", backgroundSize: "cover", backgroundPosition: "center" }}
       />
     </div>
   );

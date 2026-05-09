@@ -9,7 +9,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
-import { isSuperAdmin } from './lib/access';
+import { isAdmin } from './lib/access';
 
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
@@ -54,7 +54,7 @@ export default buildConfig({
       tenantsArrayField: {
         includeDefaultField: false,
       },
-      userHasAccessToAllTenants: (user) => isSuperAdmin(user),
+      userHasAccessToAllTenants: (user) => isAdmin(user),
     }),
     vercelBlobStorage({
       enabled: true,

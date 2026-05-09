@@ -3,9 +3,11 @@
 import z from "zod";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useState } from "react";
 import { Poppins } from "next/font/google";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import { ShoppingBagIcon, StoreIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -25,45 +27,51 @@ import {
 
 import { registerSchema } from "../../schemas";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["700"],
-});
+const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
 export const SignUpView = () => {
   const router = useRouter();
-
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const register = useMutation(trpc.auth.register.mutationOptions({
-    onError: (error) => {
-      toast.error(error.message);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries(trpc.auth.session.queryFilter());
-      router.push("/");
-    },
-  }));
+  const [selectedRole, setSelectedRole] = useState<"user" | "vendor">("user");
 
-  const form = useForm<z.infer<typeof registerSchema>>({
+  const register = useMutation(
+    trpc.auth.register.mutationOptions({
+      onError: (error) => toast.error(error.message),
+      onSuccess: async (data) => {
+        await queryClient.invalidateQueries(trpc.auth.session.queryFilter());
+        toast.success("Account created! Please check your email to verify your address.");
+
+        if (data.role === "vendor") {
+          router.push("/vendor/dashboard");
+        } else {
+          router.push("/");
+        }
+      },
+    })
+  );
+
+  type RegisterForm = {
+    email: string;
+    username: string;
+    password: string;
+    role: "user" | "vendor";
+  };
+
+  const form = useForm<RegisterForm>({
     mode: "all",
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      username: "",
-    },
+    resolver: zodResolver(registerSchema) as any,
+    defaultValues: { email: "", password: "", username: "", role: "user" },
   });
 
-  const onSubmit = (values: z.infer<typeof registerSchema>) => {
-    register.mutate(values)
-  }
+  const onSubmit = (values: RegisterForm) => {
+    register.mutate({ ...values, role: selectedRole });
+  };
 
   const username = form.watch("username");
   const usernameErrors = form.formState.errors.username;
-
-  const showPreview = username && !usernameErrors;
+  const showPreview = username && !usernameErrors && selectedRole === "vendor";
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5">
@@ -85,14 +93,51 @@ export const SignUpView = () => {
                 size="sm"
                 className="text-base border-none underline"
               >
-                <Link prefetch href="/sign-in">
-                  Sign in
-                </Link>
+                <Link prefetch href="/sign-in">Sign in</Link>
               </Button>
             </div>
+
+            {/* Role toggle */}
+            <div>
+              <p className="text-base font-medium mb-3">I want to…</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole("user")}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                    selectedRole === "user"
+                      ? "border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                      : "border-transparent bg-white hover:border-gray-300"
+                  )}
+                >
+                  <ShoppingBagIcon className="size-6" />
+                  <span className="font-semibold text-sm">Browse & Buy</span>
+                  <span className="text-xs text-gray-500">Find and purchase products</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole("vendor")}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                    selectedRole === "vendor"
+                      ? "border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                      : "border-transparent bg-white hover:border-gray-300"
+                  )}
+                >
+                  <StoreIcon className="size-6" />
+                  <span className="font-semibold text-sm">Sell Products</span>
+                  <span className="text-xs text-gray-500">Create your own store</span>
+                </button>
+              </div>
+            </div>
+
             <h1 className="text-4xl font-medium">
-              Join over 1,580 creators earning money on Funroad.
+              {selectedRole === "vendor"
+                ? "Join over 1,580 creators earning money on Funroad."
+                : "Join Funroad and discover amazing products."}
             </h1>
+
             <FormField
               name="username"
               render={({ field }) => (
@@ -101,13 +146,12 @@ export const SignUpView = () => {
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
-                  <FormDescription
-                    className={cn("hidden", showPreview && "block")}
-                  >
-                    Your store will be available at&nbsp;
-                    {/* TODO: Use proper method to generate preview url */}
-                    <strong>{username}</strong>.shop.com
-                  </FormDescription>
+                  {showPreview && (
+                    <FormDescription>
+                      Your store will be available at&nbsp;
+                      <strong>{username}</strong>.funroad.com
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -136,6 +180,7 @@ export const SignUpView = () => {
                 </FormItem>
               )}
             />
+
             <Button
               disabled={register.isPending}
               type="submit"
@@ -143,18 +188,18 @@ export const SignUpView = () => {
               variant="elevated"
               className="bg-black text-white hover:bg-pink-400 hover:text-primary"
             >
-              Create account
+              {selectedRole === "vendor" ? "Start selling" : "Create account"}
             </Button>
           </form>
         </Form>
       </div>
       <div
         className="h-screen w-full lg:col-span-2 hidden lg:block"
-        style={{ 
+        style={{
           backgroundImage: "url('/auth-bg.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-         }}
+        }}
       />
     </div>
   );

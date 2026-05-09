@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { tenantsArrayField } from "@payloadcms/plugin-multi-tenant/fields";
 
-import { isSuperAdmin } from '@/lib/access';
+import { isAdmin } from '@/lib/access';
 
 const defaultTenantArrayField = tenantsArrayField({
   tenantsArrayFieldName: "tenants",
@@ -9,13 +9,13 @@ const defaultTenantArrayField = tenantsArrayField({
   tenantsArrayTenantFieldName: "tenant",
   arrayFieldAccess: {
     read: () => true,
-    create: ({ req }) => isSuperAdmin(req.user),
-    update: ({ req }) => isSuperAdmin(req.user),
+    create: ({ req }) => isAdmin(req.user),
+    update: ({ req }) => isAdmin(req.user),
   },
   tenantFieldAccess: {
     read: () => true,
-    create: ({ req }) => isSuperAdmin(req.user),
-    update: ({ req }) => isSuperAdmin(req.user),
+    create: ({ req }) => isAdmin(req.user),
+    update: ({ req }) => isAdmin(req.user),
   },
 })
 
@@ -23,17 +23,16 @@ export const Users: CollectionConfig = {
   slug: 'users',
   access: {
     read: () => true,
-    create: ({ req }) => isSuperAdmin(req.user),
-    delete: ({ req }) => isSuperAdmin(req.user),
+    create: ({ req }) => isAdmin(req.user),
+    delete: ({ req }) => isAdmin(req.user),
     update: ({ req, id }) => {
-      if (isSuperAdmin(req.user)) return true;
-
+      if (isAdmin(req.user)) return true;
       return req.user?.id === id;
     }
   },
   admin: {
     useAsTitle: 'email',
-    hidden: ({ user }) => !isSuperAdmin(user),
+    hidden: ({ user }) => !isAdmin(user),
   },
   auth: {
     cookies: {
@@ -52,17 +51,49 @@ export const Users: CollectionConfig = {
       type: "text",
     },
     {
-      admin: {
-        position: "sidebar",
-      },
       name: "roles",
       type: "select",
       defaultValue: ["user"],
       hasMany: true,
-      options: ["super-admin", "user"],
+      options: ["admin", "vendor", "user"],
       access: {
-        update: ({ req }) => isSuperAdmin(req.user),
-      }
+        update: ({ req }) => isAdmin(req.user),
+      },
+      admin: {
+        position: "sidebar",
+      },
+    },
+    {
+      name: "emailVerified",
+      type: "checkbox",
+      defaultValue: false,
+      admin: {
+        position: "sidebar",
+        description: "Whether the user has verified their email address",
+      },
+      access: {
+        update: ({ req }) => isAdmin(req.user),
+      },
+    },
+    {
+      name: "emailVerificationToken",
+      type: "text",
+      admin: { hidden: true },
+    },
+    {
+      name: "emailVerificationExpiry",
+      type: "date",
+      admin: { hidden: true },
+    },
+    {
+      name: "passwordResetToken",
+      type: "text",
+      admin: { hidden: true },
+    },
+    {
+      name: "passwordResetExpiry",
+      type: "date",
+      admin: { hidden: true },
     },
     {
       ...defaultTenantArrayField,

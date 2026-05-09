@@ -1,23 +1,23 @@
 import type { CollectionConfig } from "payload";
 
 import { Tenant } from "@/payload-types";
-import { isSuperAdmin } from "@/lib/access";
+import { isAdmin, isVendor } from "@/lib/access";
 
 export const Products: CollectionConfig = {
   slug: "products",
   access: {
     create: ({ req }) => {
-      if (isSuperAdmin(req.user)) return true;
+      if (isAdmin(req.user)) return true;
+      if (!isVendor(req.user)) return false;
 
-      const tenant = req.user?.tenants?.[0]?.tenant as Tenant
-
+      const tenant = req.user?.tenants?.[0]?.tenant as Tenant;
       return Boolean(tenant?.stripeDetailsSubmitted);
     },
-    delete: ({ req }) => isSuperAdmin(req.user),
+    delete: ({ req }) => isAdmin(req.user),
   },
   admin: {
     useAsTitle: "name",
-    description: "You must verify your account before creating products"
+    description: "You must verify your Stripe account before creating products",
   },
   fields: [
     {
@@ -33,9 +33,7 @@ export const Products: CollectionConfig = {
       name: "price",
       type: "number",
       required: true,
-      admin: {
-        description: "Price in USD"
-      }
+      admin: { description: "Price in USD" },
     },
     {
       name: "category",
@@ -70,7 +68,7 @@ export const Products: CollectionConfig = {
       type: "richText",
       admin: {
         description:
-          "Protected content only visible to customers after purchase. Add product documentation, downloadable files, getting started guides, and bonus materials. Supports Markdown formatting"
+          "Protected content only visible to customers after purchase. Supports Markdown formatting.",
       },
     },
     {
@@ -79,7 +77,8 @@ export const Products: CollectionConfig = {
       defaultValue: false,
       type: "checkbox",
       admin: {
-        description: "If checked, this product will not be shown on the public storefront"
+        description:
+          "If checked, this product will not be shown on the public storefront",
       },
     },
     {
@@ -87,9 +86,7 @@ export const Products: CollectionConfig = {
       label: "Archive",
       defaultValue: false,
       type: "checkbox",
-      admin: {
-        description: "If checked, this product will be archived"
-      },
+      admin: { description: "If checked, this product will be archived" },
     },
   ],
 };

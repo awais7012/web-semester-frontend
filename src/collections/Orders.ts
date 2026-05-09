@@ -1,17 +1,19 @@
 import type { CollectionConfig } from "payload";
 
-import { isSuperAdmin } from "@/lib/access";
+import { isAdmin } from "@/lib/access";
 
 export const Orders: CollectionConfig = {
   slug: "orders",
   access: {
-    read: ({ req }) => isSuperAdmin(req.user),
-    create: ({ req }) => isSuperAdmin(req.user),
-    update: ({ req }) => isSuperAdmin(req.user),
-    delete: ({ req }) => isSuperAdmin(req.user),
+    // admin sees everything; vendors read their own orders via tRPC (not Payload admin)
+    read: ({ req }) => isAdmin(req.user),
+    create: ({ req }) => isAdmin(req.user),
+    update: ({ req }) => isAdmin(req.user),
+    delete: ({ req }) => isAdmin(req.user),
   },
   admin: {
     useAsTitle: "name",
+    hidden: ({ user }) => !isAdmin(user),
   },
   fields: [
     {
@@ -37,16 +39,12 @@ export const Orders: CollectionConfig = {
       name: "stripeCheckoutSessionId",
       type: "text",
       required: true,
-      admin: {
-        description: "Stripe checkout session associated with the order"
-      }
+      admin: { description: "Stripe checkout session associated with the order" },
     },
     {
       name: "stripeAccountId",
       type: "text",
-      admin: {
-        description: "Stripe account associated with the order"
-      }
+      admin: { description: "Stripe account associated with the order" },
     },
   ],
 };

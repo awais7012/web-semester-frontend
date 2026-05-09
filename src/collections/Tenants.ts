@@ -1,15 +1,16 @@
 import type { CollectionConfig } from 'payload';
 
-import { isSuperAdmin } from '@/lib/access';
+import { isAdmin } from '@/lib/access';
 
 export const Tenants: CollectionConfig = {
   slug: 'tenants',
   access: {
-    create: ({ req }) => isSuperAdmin(req.user),
-    delete: ({ req }) => isSuperAdmin(req.user),
+    create: ({ req }) => isAdmin(req.user),
+    delete: ({ req }) => isAdmin(req.user),
   },
   admin: {
     useAsTitle: 'slug',
+    hidden: ({ user }) => !isAdmin(user),
   },
   fields: [
     {
@@ -28,11 +29,10 @@ export const Tenants: CollectionConfig = {
       required: true,
       unique: true,
       access: {
-        update: ({ req }) => isSuperAdmin(req.user),
+        update: ({ req }) => isAdmin(req.user),
       },
       admin: {
-        description:
-          "This is the subdomain for the store (e.g. [slug].funroad.com)",
+        description: "This is the subdomain for the store (e.g. [slug].funroad.com)",
       },
     },
     {
@@ -45,7 +45,7 @@ export const Tenants: CollectionConfig = {
       type: "text",
       required: true,
       access: {
-        update: ({ req }) => isSuperAdmin(req.user),
+        update: ({ req }) => isAdmin(req.user),
       },
       admin: {
         description: "Stripe Account ID associated with your shop",
@@ -55,7 +55,7 @@ export const Tenants: CollectionConfig = {
       name: "stripeDetailsSubmitted",
       type: "checkbox",
       access: {
-        update: ({ req }) => isSuperAdmin(req.user),
+        update: ({ req }) => isAdmin(req.user),
       },
       admin: {
         description: "You cannot create products until you submit your Stripe details",

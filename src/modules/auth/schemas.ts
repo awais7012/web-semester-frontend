@@ -21,4 +21,18 @@ export const registerSchema = z.object({
       "Username cannot contain consecutive hyphens"
     )
     .transform((val) => val.toLowerCase()),
+  role: z.enum(["user", "vendor"]).default("user"),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(3),
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1),
 });

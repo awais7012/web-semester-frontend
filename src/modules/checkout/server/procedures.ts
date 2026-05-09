@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 
 import { TRPCError } from "@trpc/server";
 
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { Media, Tenant } from "@/payload-types";
 import { baseProcedure, createTRPCRouter, protectedProcedure } from "@/trpc/init";
 
@@ -40,7 +40,7 @@ export const checkoutRouter = createTRPCRouter({
         });
       }
 
-      const accountLink = await stripe.accountLinks.create({
+      const accountLink = await getStripe().accountLinks.create({
         account: tenant.stripeAccountId,
         refresh_url: `${process.env.NEXT_PUBLIC_APP_URL!}/admin`,
         return_url: `${process.env.NEXT_PUBLIC_APP_URL!}/admin`,
@@ -147,7 +147,7 @@ export const checkoutRouter = createTRPCRouter({
 
       const domain = generateTenantURL(input.tenantSlug);
 
-      const checkout = await stripe.checkout.sessions.create({
+      const checkout = await getStripe().checkout.sessions.create({
         customer_email: ctx.session.user.email,
         success_url: `${domain}/checkout?success=true`,
         cancel_url: `${domain}/checkout?cancel=true`,

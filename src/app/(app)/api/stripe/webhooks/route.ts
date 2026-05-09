@@ -3,11 +3,11 @@ import { getPayload } from "payload";
 import config from "@payload-config";
 import { NextResponse } from "next/server";
 
-import { stripe } from "@/lib/stripe";
-
+import { getStripe } from "@/lib/stripe";
 import { ExpandedLineItem } from "@/modules/checkout/types";
 
 export async function POST(req: Request) {
+  const stripe = getStripe();
   let event: Stripe.Event;
 
   try {

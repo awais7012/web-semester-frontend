@@ -136,7 +136,12 @@ export interface UserAuthOperations {
 export interface User {
   id: string;
   username: string;
-  roles?: ('super-admin' | 'user')[] | null;
+  roles?: ('admin' | 'vendor' | 'user')[] | null;
+  emailVerified?: boolean | null;
+  emailVerificationToken?: string | null;
+  emailVerificationExpiry?: string | null;
+  passwordResetToken?: string | null;
+  passwordResetExpiry?: string | null;
   tenants?:
     | {
         tenant: string | Tenant;
