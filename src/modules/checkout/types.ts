@@ -9,6 +9,9 @@ export type ProductMetadata = {
 
 export type CheckoutMetadata = {
   userId: string;
+  tenantSlug?: string;
+  phone?: string;
+  address?: string;
 };
 
 export type ExpandedLineItem = Stripe.LineItem & {

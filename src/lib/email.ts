@@ -7,7 +7,7 @@ function getResend(): Resend {
 }
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL!;
-const FROM = "Funroad <noreply@funroad.com>";
+const FROM = "Funroad <onboarding@resend.dev>";
 
 export async function sendVerificationEmail(email: string, token: string) {
   const url = `${APP_URL()}/verify-email?token=${token}`;

@@ -137,6 +137,13 @@ export interface User {
   id: string;
   username: string;
   roles?: ('admin' | 'vendor' | 'user')[] | null;
+  /**
+   * Vendors must be approved before accessing their dashboard. Blocked users cannot log in.
+   */
+  status?: ('active' | 'pending' | 'blocked') | null;
+  /**
+   * Whether the user has verified their email address
+   */
   emailVerified?: boolean | null;
   emailVerificationToken?: string | null;
   emailVerificationExpiry?: string | null;
@@ -224,7 +231,7 @@ export interface Category {
   createdAt: string;
 }
 /**
- * You must verify your account before creating products
+ * You must verify your Stripe account before creating products
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "products".
@@ -258,7 +265,7 @@ export interface Product {
   cover?: (string | null) | Media;
   refundPolicy?: ('30-day' | '14-day' | '7-day' | '3-day' | '1-day' | 'no-refunds') | null;
   /**
-   * Protected content only visible to customers after purchase. Add product documentation, downloadable files, getting started guides, and bonus materials. Supports Markdown formatting
+   * Protected content only visible to customers after purchase. Supports Markdown formatting.
    */
   content?: {
     root: {
@@ -314,6 +321,9 @@ export interface Order {
    * Stripe account associated with the order
    */
   stripeAccountId?: string | null;
+  status?: ('pending' | 'processing' | 'shipped' | 'delivered') | null;
+  phone?: string | null;
+  shippingAddress?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -327,6 +337,10 @@ export interface Review {
   rating: number;
   product: string | Product;
   user: string | User;
+  /**
+   * Vendor's public response to this review
+   */
+  vendorReply?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -418,6 +432,12 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   username?: T;
   roles?: T;
+  status?: T;
+  emailVerified?: T;
+  emailVerificationToken?: T;
+  emailVerificationExpiry?: T;
+  passwordResetToken?: T;
+  passwordResetExpiry?: T;
   tenants?:
     | T
     | {
@@ -519,6 +539,9 @@ export interface OrdersSelect<T extends boolean = true> {
   product?: T;
   stripeCheckoutSessionId?: T;
   stripeAccountId?: T;
+  status?: T;
+  phone?: T;
+  shippingAddress?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -531,6 +554,7 @@ export interface ReviewsSelect<T extends boolean = true> {
   rating?: T;
   product?: T;
   user?: T;
+  vendorReply?: T;
   updatedAt?: T;
   createdAt?: T;
 }

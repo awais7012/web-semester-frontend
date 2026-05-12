@@ -60,21 +60,27 @@ export async function POST(req: Request) {
             throw new Error("User not found");
           }
 
+          // Retrieve expanded session — only pass stripeAccount for Connect events
           const expandedSession = await stripe.checkout.sessions.retrieve(
             data.id,
-            {
-              expand: ["line_items.data.price.product"],
-            },
-            {
-              stripeAccount: event.account,
-            },
+            { expand: ["line_items.data.price.product"] },
+            event.account ? { stripeAccount: event.account } : undefined,
           );
 
-          if (
-            !expandedSession.line_items?.data ||
-            !expandedSession.line_items.data.length
-          ) {
+          if (!expandedSession.line_items?.data?.length) {
             throw new Error("No line items found");
+          }
+
+          // For platform payments event.account is null, so look up the
+          // vendor's stripeAccountId via the tenantSlug saved in metadata.
+          let resolvedStripeAccountId: string | null = event.account ?? null;
+          if (!resolvedStripeAccountId && data.metadata?.tenantSlug) {
+            const tenantResult = await payload.find({
+              collection: "tenants",
+              limit: 1,
+              where: { slug: { equals: data.metadata.tenantSlug } },
+            });
+            resolvedStripeAccountId = tenantResult.docs[0]?.stripeAccountId ?? null;
           }
 
           const lineItems = expandedSession.line_items.data as ExpandedLineItem[];
@@ -84,11 +90,13 @@ export async function POST(req: Request) {
               collection: "orders",
               data: {
                 stripeCheckoutSessionId: data.id,
-                stripeAccountId: event.account,
+                stripeAccountId: resolvedStripeAccountId,
                 user: user.id,
                 product: item.price.product.metadata.id,
                 name: item.price.product.name,
-              },
+                phone: data.metadata?.phone || null,
+                shippingAddress: data.metadata?.address || null,
+              } as any,
             });
           }
           break;

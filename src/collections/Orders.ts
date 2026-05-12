@@ -46,5 +46,24 @@ export const Orders: CollectionConfig = {
       type: "text",
       admin: { description: "Stripe account associated with the order" },
     },
+    {
+      name: "status",
+      type: "select",
+      defaultValue: "pending",
+      options: [
+        { label: "Pending", value: "pending" },
+        { label: "Processing", value: "processing" },
+        { label: "Shipped", value: "shipped" },
+        { label: "Delivered", value: "delivered" },
+      ],
+    },
+    {
+      name: "phone",
+      type: "text",
+    },
+    {
+      name: "shippingAddress",
+      type: "text",
+    },
   ],
 };

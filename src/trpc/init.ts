@@ -38,7 +38,7 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
   });
 });
 
-// Must be logged in AND have "vendor" or "admin" role
+// Must be logged in AND have "vendor" or "admin" role AND be approved (status=active)
 export const vendorProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   const roles = ctx.session.user.roles ?? [];
   const isVendorOrAdmin = roles.includes("vendor") || roles.includes("admin");
@@ -47,6 +47,21 @@ export const vendorProcedure = protectedProcedure.use(async ({ ctx, next }) => {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Vendor access required",
+    });
+  }
+
+  const status = ctx.session.user.status;
+  if (status === "pending") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Your vendor account is pending admin approval",
+    });
+  }
+
+  if (status === "blocked") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Your account has been blocked",
     });
   }
 

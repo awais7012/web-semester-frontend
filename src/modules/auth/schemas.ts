@@ -21,6 +21,10 @@ export const registerSchema = z.object({
       "Username cannot contain consecutive hyphens"
     )
     .transform((val) => val.toLowerCase()),
+  storeName: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.string().min(2, "Store name must be at least 2 characters").max(100).optional()
+  ),
   role: z.enum(["user", "vendor"]).default("user"),
 });
 

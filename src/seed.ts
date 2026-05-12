@@ -142,7 +142,14 @@ const categories = [
 const seed = async () => {
   const payload = await getPayload({ config });
 
-  const adminAccount = await getStripe().accounts.create({});
+  // Admin tenant doesn't need a real Stripe connected account (it's the platform itself)
+  let stripeAccountId = "admin_platform";
+  try {
+    const adminAccount = await getStripe().accounts.create({});
+    stripeAccountId = adminAccount.id;
+  } catch {
+    console.log("Stripe Connect not enabled — skipping Stripe account creation for admin tenant");
+  }
 
   // Create admin tenant
   const adminTenant = await payload.create({
@@ -150,7 +157,7 @@ const seed = async () => {
     data: {
       name: "admin",
       slug: "admin",
-      stripeAccountId: adminAccount.id,
+      stripeAccountId,
     },
   });
 

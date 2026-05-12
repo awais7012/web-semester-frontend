@@ -176,6 +176,42 @@ export const ProductView = ({ productId, tenantSlug }: ProductViewProps) => {
             </div>
           </div>
         </div>
+
+        {/* Full-width reviews section */}
+        <div className="col-span-6 border-t p-6">
+          <h3 className="text-xl font-medium mb-4">Customer Reviews</h3>
+          {data.reviews.length === 0 ? (
+            <p className="text-muted-foreground italic">No reviews yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {data.reviews.map((review) => {
+                const reviewUser = review.user as { email?: string } | null;
+                const reviewerName = reviewUser?.email
+                  ? reviewUser.email.split("@")[0]
+                  : "Anonymous";
+
+                return (
+                  <div key={review.id} className="border rounded-md p-4 bg-white">
+                    <div className="flex items-center gap-3 mb-1">
+                      <StarRating rating={review.rating} iconClassName="size-4" />
+                      <span className="font-medium text-sm">{reviewerName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-sm mt-2">{review.description}</p>
+                    {(review as { vendorReply?: string | null }).vendorReply && (
+                      <div className="mt-3 bg-gray-100 rounded p-3 text-sm">
+                        <p className="font-medium text-gray-700 mb-1">Seller&apos;s response:</p>
+                        <p className="text-gray-600">{(review as { vendorReply?: string | null }).vendorReply}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -36,10 +36,11 @@ export const Users: CollectionConfig = {
   },
   auth: {
     cookies: {
-      ...(process.env.NODE_ENV !== "development" && {
-        sameSite: "None",
-        domain: process.env.NEXT_PUBLIC_ROOT_DOMAIN,
-        secure: true,
+      ...(process.env.NEXT_PUBLIC_ENABLE_SUBDOMAIN_ROUTING === "true" && {
+        // Strip port — cookie domain does not accept ports
+        domain: (process.env.NEXT_PUBLIC_ROOT_DOMAIN || "").split(":")[0],
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        ...(process.env.NODE_ENV === "production" && { secure: true }),
       }),
     }
   },
@@ -61,6 +62,23 @@ export const Users: CollectionConfig = {
       },
       admin: {
         position: "sidebar",
+      },
+    },
+    {
+      name: "status",
+      type: "select",
+      defaultValue: "active",
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Pending Approval", value: "pending" },
+        { label: "Blocked", value: "blocked" },
+      ],
+      access: {
+        update: ({ req }) => isAdmin(req.user),
+      },
+      admin: {
+        position: "sidebar",
+        description: "Vendors must be approved before accessing their dashboard. Blocked users cannot log in.",
       },
     },
     {

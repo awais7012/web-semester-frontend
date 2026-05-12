@@ -53,7 +53,7 @@ export const authRouter = createTRPCRouter({
         const tenant = await ctx.db.create({
           collection: "tenants",
           data: {
-            name: input.username,
+            name: input.storeName || input.username,
             slug: input.username,
             stripeAccountId: account.id,
           },
@@ -73,6 +73,7 @@ export const authRouter = createTRPCRouter({
           username: input.username,
           password: input.password,
           roles: [input.role],
+          status: input.role === "vendor" ? "pending" : "active",
           tenants: tenantData,
           emailVerified: false,
           emailVerificationToken: verificationToken,
@@ -95,19 +96,28 @@ export const authRouter = createTRPCRouter({
 
       await generateAuthCookie({ prefix: ctx.db.config.cookiePrefix, value: data.token });
 
-      return { role: input.role };
+      return { role: input.role, status: input.role === "vendor" ? "pending" : "active" };
     }),
 
   login: baseProcedure
     .input(loginSchema)
     .mutation(async ({ input, ctx }) => {
-      const data = await ctx.db.login({
-        collection: "users",
-        data: { email: input.email, password: input.password },
-      });
+      let data: Awaited<ReturnType<typeof ctx.db.login>>;
+      try {
+        data = await ctx.db.login({
+          collection: "users",
+          data: { email: input.email, password: input.password },
+        });
+      } catch {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+      }
 
       if (!data.token) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+      }
+
+      if (data.user?.status === "blocked") {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Your account has been blocked. Please contact support." });
       }
 
       await generateAuthCookie({ prefix: ctx.db.config.cookiePrefix, value: data.token });

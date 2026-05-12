@@ -1,13 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { InboxIcon, LoaderIcon } from "lucide-react";
+import { CheckCircleIcon, InboxIcon, LoaderIcon, XCircleIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/client";
 import { generateTenantURL } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 import { useCart } from "../../hooks/use-cart";
 import { CheckoutItem } from "../components/checkout-item";
@@ -22,6 +24,8 @@ export const CheckoutView = ({ tenantSlug }: CheckoutViewProps) => {
   const router = useRouter();
   const [states, setStates] = useCheckoutStates();
   const { productIds, removeProduct, clearCart } = useCart(tenantSlug);
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -48,19 +52,11 @@ export const CheckoutView = ({ tenantSlug }: CheckoutViewProps) => {
 
   useEffect(() => {
     if (states.success) {
-      setStates({ success: false, cancel: false });
       clearCart();
       queryClient.invalidateQueries(trpc.library.getMany.infiniteQueryFilter());
-      router.push("/library");
     }
-  }, [
-    states.success, 
-    clearCart, 
-    router, 
-    setStates,
-    queryClient,
-    trpc.library.getMany,
-  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [states.success]);
   
   useEffect(() => {
     if (error?.data?.code === "NOT_FOUND") {
@@ -77,6 +73,44 @@ export const CheckoutView = ({ tenantSlug }: CheckoutViewProps) => {
         </div>
       </div>
     )
+  }
+
+  if (states.success) {
+    return (
+      <div className="lg:pt-16 pt-4 px-4 lg:px-12">
+        <div className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl bg-white p-10 flex flex-col items-center gap-4 text-center max-w-md mx-auto">
+          <CheckCircleIcon className="size-16 text-green-500" />
+          <h2 className="text-2xl font-bold">Payment successful!</h2>
+          <p className="text-gray-500 text-sm">
+            Your purchase is confirmed. It may take a few seconds to appear in your library.
+          </p>
+          <Link
+            href="/library"
+            className="mt-2 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-pink-400 hover:text-black transition-colors"
+          >
+            Go to My Library
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (states.cancel) {
+    return (
+      <div className="lg:pt-16 pt-4 px-4 lg:px-12">
+        <div className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl bg-white p-10 flex flex-col items-center gap-4 text-center max-w-md mx-auto">
+          <XCircleIcon className="size-16 text-red-400" />
+          <h2 className="text-2xl font-bold">Payment cancelled</h2>
+          <p className="text-gray-500 text-sm">Your cart is still saved. Try again when you&apos;re ready.</p>
+          <button
+            onClick={() => setStates({ success: false, cancel: false })}
+            className="mt-2 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-pink-400 hover:text-black transition-colors"
+          >
+            Back to checkout
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (data?.totalDocs === 0) {
@@ -113,9 +147,24 @@ export const CheckoutView = ({ tenantSlug }: CheckoutViewProps) => {
         </div>
 
         <div className="lg:col-span-3">
+          <div className="border rounded-md overflow-hidden bg-white p-4 mb-4">
+            <h2 className="font-semibold text-base mb-3">Delivery info</h2>
+            <div className="space-y-3">
+              <Input
+                placeholder="Phone number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <Input
+                placeholder="Shipping address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+          </div>
           <CheckoutSidebar
             total={data?.totalPrice || 0}
-            onPurchase={() => purchase.mutate({ tenantSlug, productIds })}
+            onPurchase={() => purchase.mutate({ tenantSlug, productIds, phone, address })}
             isCanceled={states.cancel}
             disabled={purchase.isPending}
           />

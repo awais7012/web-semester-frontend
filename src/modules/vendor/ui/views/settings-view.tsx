@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import { CheckCircleIcon, AlertCircleIcon, LoaderIcon } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,22 @@ export const SettingsView = () => {
   const trpc = useTRPC();
   const store = useQuery(trpc.vendor.getStore.queryOptions());
 
+  const queryClient = useQueryClient();
+
   const verify = useMutation(
     trpc.checkout.verify.mutationOptions({
       onSuccess: (data) => {
-        window.location.href = data.url;
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      },
+      onError: (e) => toast.error(e.message),
+    })
+  );
+
+  const markVerified = useMutation(
+    trpc.vendor.markVerifiedDemo.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries(trpc.vendor.getStore.queryFilter());
+        toast.success("Store marked as verified (demo mode)!");
       },
       onError: (e) => toast.error(e.message),
     })
@@ -84,13 +96,23 @@ export const SettingsView = () => {
                 </p>
               </div>
             </div>
-            <Button
-              onClick={() => verify.mutate()}
-              disabled={verify.isPending}
-              className="bg-black text-white hover:bg-pink-400 hover:text-black"
-            >
-              {verify.isPending ? "Loading…" : "Verify Stripe account"}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => verify.mutate()}
+                disabled={verify.isPending}
+                className="bg-black text-white hover:bg-pink-400 hover:text-black"
+              >
+                {verify.isPending ? "Loading…" : "Verify Stripe account"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => markVerified.mutate()}
+                disabled={markVerified.isPending}
+                className="border-dashed border-gray-400 text-gray-600 hover:bg-gray-50 text-sm"
+              >
+                {markVerified.isPending ? "Activating…" : "Skip for now (demo mode)"}
+              </Button>
+            </div>
           </div>
         )}
       </div>

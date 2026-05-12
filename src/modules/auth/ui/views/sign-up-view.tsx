@@ -29,23 +29,28 @@ import { registerSchema } from "../../schemas";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
-export const SignUpView = () => {
+interface SignUpViewProps {
+  initialRole?: "user" | "vendor";
+}
+
+export const SignUpView = ({ initialRole = "user" }: SignUpViewProps) => {
   const router = useRouter();
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const [selectedRole, setSelectedRole] = useState<"user" | "vendor">("user");
+  const [selectedRole, setSelectedRole] = useState<"user" | "vendor">(initialRole);
 
   const register = useMutation(
     trpc.auth.register.mutationOptions({
       onError: (error) => toast.error(error.message),
       onSuccess: async (data) => {
         await queryClient.invalidateQueries(trpc.auth.session.queryFilter());
-        toast.success("Account created! Please check your email to verify your address.");
 
         if (data.role === "vendor") {
+          toast.success("Store created! Your account is pending admin approval.");
           router.push("/vendor/dashboard");
         } else {
+          toast.success("Account created! Please check your email to verify your address.");
           router.push("/");
         }
       },
@@ -56,13 +61,14 @@ export const SignUpView = () => {
     email: string;
     username: string;
     password: string;
+    storeName?: string;
     role: "user" | "vendor";
   };
 
   const form = useForm<RegisterForm>({
     mode: "all",
     resolver: zodResolver(registerSchema) as any,
-    defaultValues: { email: "", password: "", username: "", role: "user" },
+    defaultValues: { email: "", password: "", username: "", storeName: "", role: "user" },
   });
 
   const onSubmit = (values: RegisterForm) => {
@@ -156,6 +162,21 @@ export const SignUpView = () => {
                 </FormItem>
               )}
             />
+            {selectedRole === "vendor" && (
+              <FormField
+                name="storeName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base">Store name</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g. Ahmed's Digital Store" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               name="email"
               render={({ field }) => (

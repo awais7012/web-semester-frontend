@@ -65,6 +65,7 @@ export const productsRouter = createTRPCRouter({
       const reviews = await ctx.db.find({
         collection: "reviews",
         pagination: false,
+        depth: 1,
         where: {
           product: {
             equals: input.id,
@@ -111,6 +112,7 @@ export const productsRouter = createTRPCRouter({
         reviewRating,
         reviewCount: reviews.totalDocs,
         ratingDistribution,
+        reviews: reviews.docs,
       }
     }),
   getMany: baseProcedure

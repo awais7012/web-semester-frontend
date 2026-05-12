@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { MenuIcon } from "lucide-react";
+import { LogOutIcon, MenuIcon } from "lucide-react";
 import { Poppins } from "next/font/google";
-import { usePathname } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { usePathname, useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -44,10 +44,22 @@ const navbarItems = [
 
 export const Navbar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const session = useQuery(trpc.auth.session.queryOptions());
+
+  const logout = useMutation({
+    mutationFn: async () => {
+      await fetch("/api/users/logout", { method: "POST" });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(trpc.auth.session.queryFilter());
+      router.push("/");
+    },
+  });
 
   const user = session.data?.user;
   const roles: string[] = (user as { roles?: string[] })?.roles ?? [];
@@ -97,9 +109,19 @@ export const Navbar = () => {
         <div className="hidden lg:flex">
           <Button
             asChild
-            className="border-l border-t-0 border-b-0 border-r-0 px-12 h-full rounded-none bg-black text-white hover:bg-pink-400 hover:text-black transition-colors text-lg"
+            variant="secondary"
+            className="border-l border-t-0 border-b-0 border-r-0 px-8 h-full rounded-none bg-white hover:bg-pink-400 transition-colors text-lg"
           >
             <Link href={dashboardHref}>{dashboardLabel}</Link>
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+            className="border-l border-t-0 border-b-0 border-r-0 px-6 h-full rounded-none bg-white hover:bg-red-100 hover:text-red-700 transition-colors"
+            title="Sign out"
+          >
+            <LogOutIcon className="size-5" />
           </Button>
         </div>
       ) : (
@@ -113,9 +135,16 @@ export const Navbar = () => {
           </Button>
           <Button
             asChild
-            className="border-l border-t-0 border-b-0 border-r-0 px-12 h-full rounded-none bg-black text-white hover:bg-pink-400 hover:text-black transition-colors text-lg"
+            variant="secondary"
+            className="border-l border-t-0 border-b-0 border-r-0 px-8 h-full rounded-none bg-white hover:bg-pink-400 transition-colors text-lg"
           >
-            <Link prefetch href="/sign-up">Start selling</Link>
+            <Link prefetch href="/sign-up">Sign up</Link>
+          </Button>
+          <Button
+            asChild
+            className="border-l border-t-0 border-b-0 border-r-0 px-8 h-full rounded-none bg-black text-white hover:bg-pink-400 hover:text-black transition-colors text-lg"
+          >
+            <Link prefetch href="/sign-up?role=vendor">Start selling</Link>
           </Button>
         </div>
       )}

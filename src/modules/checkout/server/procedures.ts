@@ -8,7 +8,6 @@ import { Media, Tenant } from "@/payload-types";
 import { baseProcedure, createTRPCRouter, protectedProcedure } from "@/trpc/init";
 
 import { CheckoutMetadata, ProductMetadata } from "../types";
-import { PLATFORM_FEE_PERCENTAGE } from "@/constants";
 import { generateTenantURL } from "@/lib/utils";
 
 export const checkoutRouter = createTRPCRouter({
@@ -61,6 +60,8 @@ export const checkoutRouter = createTRPCRouter({
       z.object({
         productIds: z.array(z.string()).min(1),
         tenantSlug: z.string().min(1),
+        phone: z.string().optional(),
+        address: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -137,14 +138,6 @@ export const checkoutRouter = createTRPCRouter({
           }
         }));
 
-      const totalAmount = products.docs.reduce(
-        (acc, item) => acc + item.price * 100,
-        0
-      );
-      const platformFeeAmount = Math.round(
-        totalAmount * (PLATFORM_FEE_PERCENTAGE / 100)
-      );
-
       const domain = generateTenantURL(input.tenantSlug);
 
       const checkout = await getStripe().checkout.sessions.create({
@@ -158,12 +151,10 @@ export const checkoutRouter = createTRPCRouter({
         },
         metadata: {
           userId: ctx.session.user.id,
+          tenantSlug: input.tenantSlug,
+          phone: input.phone ?? "",
+          address: input.address ?? "",
         } as CheckoutMetadata,
-        payment_intent_data: {
-          application_fee_amount: platformFeeAmount,
-        }
-      }, {
-        stripeAccount: tenant.stripeAccountId,
       });
 
       if (!checkout.url) {

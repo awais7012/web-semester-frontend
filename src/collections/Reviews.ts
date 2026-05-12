@@ -41,5 +41,10 @@ export const Reviews: CollectionConfig = {
       hasMany: false,
       required: true,
     },
+    {
+      name: "vendorReply",
+      type: "textarea",
+      admin: { description: "Vendor's public response to this review" },
+    },
   ],
 };
