@@ -21,7 +21,7 @@ export default async function middleware(req: NextRequest) {
   // Strip port from root domain so "funroad.local:3000" → "funroad.local"
   // The host header always includes the port, and we need to compare the domain part only
   const rootDomainNoPort = rootDomain.split(":")[0];
-  const hostnameNoPort = hostname.split(":")[0];
+  const hostnameNoPort = hostname.split(":")[0] ?? hostname;
 
   // Check if this request is for a tenant subdomain
   // e.g. "awais12354.funroad.local:3000" → slug = "awais12354"

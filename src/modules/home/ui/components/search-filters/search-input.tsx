@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { BookmarkCheckIcon, ListFilterIcon, SearchIcon } from "lucide-react";
 
-import { useTRPC } from "@/trpc/client";
+import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -22,9 +21,7 @@ export const SearchInput = ({
 }: Props) => {
   const [searchValue, setSearchValue] = useState(defaultValue || "");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const trpc = useTRPC();
-  const session = useQuery(trpc.auth.session.queryOptions());
+  const { user } = useAuth();
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -54,7 +51,7 @@ export const SearchInput = ({
       >
         <ListFilterIcon />
       </Button>
-      {session.data?.user && (
+      {user && (
         <Button
           asChild
           variant="elevated"

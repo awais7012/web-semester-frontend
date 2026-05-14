@@ -2,89 +2,60 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { LogOutIcon, MenuIcon } from "lucide-react";
+import { LogOutIcon, MenuIcon, ShoppingCartIcon } from "lucide-react";
 import { Poppins } from "next/font/google";
-import { usePathname, useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
-import { useTRPC } from "@/trpc/client";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { useCartStore } from "@/modules/checkout/store/use-cart-store";
+import { generateTenantURL } from "@/lib/utils";
 
 import { NavbarSidebar } from "./navbar-sidebar";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
-interface NavbarItemProps {
-  href: string;
-  children: React.ReactNode;
-  isActive?: boolean;
-}
-
-const NavbarItem = ({ href, children, isActive }: NavbarItemProps) => (
-  <Button
-    asChild
-    variant="outline"
-    className={cn(
-      "bg-transparent hover:bg-transparent rounded-full hover:border-primary border-transparent px-3.5 text-lg",
-      isActive && "bg-black text-white hover:bg-black hover:text-white"
-    )}
-  >
-    <Link href={href}>{children}</Link>
-  </Button>
-);
-
 const navbarItems = [
   { href: "/", children: "Home" },
-  { href: "/about", children: "About" },
-  { href: "/features", children: "Features" },
-  { href: "/pricing", children: "Pricing" },
-  { href: "/contact", children: "Contact" },
 ];
 
+function CartNavButton() {
+  const tenantCarts = useCartStore((s) => s.tenantCarts);
+  const entries = Object.entries(tenantCarts).filter(([, c]) => c.productIds.length > 0);
+  const totalItems = entries.reduce((sum, [, c]) => sum + c.productIds.length, 0);
+
+  if (totalItems === 0) return null;
+
+  const firstSlug = entries[0]?.[0];
+  const href = firstSlug ? `${generateTenantURL(firstSlug)}/checkout` : "/";
+
+  return (
+    <Link
+      href={href}
+      className="relative flex items-center gap-1.5 border-l border-t-0 border-b-0 border-r-0 px-5 h-full bg-white hover:bg-pink-400 transition-colors text-base font-medium"
+    >
+      <ShoppingCartIcon className="size-5" />
+      <span className="absolute top-3 right-2 bg-black text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+        {totalItems}
+      </span>
+    </Link>
+  );
+}
+
 export const Navbar = () => {
-  const pathname = usePathname();
-  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
 
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const session = useQuery(trpc.auth.session.queryOptions());
+  const isAdmin  = user?.role === "admin";
+  const isVendor = user?.role === "vendor";
 
-  const logout = useMutation({
-    mutationFn: async () => {
-      await fetch("/api/users/logout", { method: "POST" });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries(trpc.auth.session.queryFilter());
-      router.push("/");
-    },
-  });
-
-  const user = session.data?.user;
-  const roles: string[] = (user as { roles?: string[] })?.roles ?? [];
-  const isAdmin = roles.includes("admin");
-  const isVendor = roles.includes("vendor");
-
-  // Determine dashboard link based on role
-  const dashboardHref = isAdmin
-    ? "/admin"
-    : isVendor
-    ? "/vendor/dashboard"
-    : "/library";
-
-  const dashboardLabel = isAdmin
-    ? "Admin panel"
-    : isVendor
-    ? "Dashboard"
-    : "Library";
+  const dashboardHref  = isAdmin ? "/admin" : isVendor ? "/vendor/dashboard" : "/library";
+  const dashboardLabel = isAdmin ? "Admin panel" : isVendor ? "Dashboard" : "Library";
 
   return (
     <nav className="h-20 flex border-b justify-between font-medium bg-white">
       <Link href="/" className="pl-6 flex items-center">
-        <span className={cn("text-5xl font-semibold", poppins.className)}>
-          funroad
-        </span>
+        <span className={cn("text-5xl font-semibold", poppins.className)}>funroad</span>
       </Link>
 
       <NavbarSidebar
@@ -93,20 +64,9 @@ export const Navbar = () => {
         onOpenChange={setIsSidebarOpen}
       />
 
-      <div className="items-center gap-4 hidden lg:flex">
-        {navbarItems.map((item) => (
-          <NavbarItem
-            key={item.href}
-            href={item.href}
-            isActive={pathname === item.href}
-          >
-            {item.children}
-          </NavbarItem>
-        ))}
-      </div>
-
       {user ? (
         <div className="hidden lg:flex">
+          <CartNavButton />
           <Button
             asChild
             variant="secondary"
@@ -116,8 +76,7 @@ export const Navbar = () => {
           </Button>
           <Button
             variant="secondary"
-            onClick={() => logout.mutate()}
-            disabled={logout.isPending}
+            onClick={logout}
             className="border-l border-t-0 border-b-0 border-r-0 px-6 h-full rounded-none bg-white hover:bg-red-100 hover:text-red-700 transition-colors"
             title="Sign out"
           >

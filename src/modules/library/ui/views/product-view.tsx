@@ -1,25 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeftIcon } from "lucide-react";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { RichText } from "@payloadcms/richtext-lexical/react";
 
-import { useTRPC } from "@/trpc/client";
+import { libraryApi, type LibraryProductDetail } from "@/lib/api-client";
 
 import { ReviewSidebar } from "../components/review-sidebar";
-import { ReviewFormSkeleton } from "../components/review-form";
 
 interface Props {
   productId: string;
 }
 
 export const ProductView = ({ productId }: Props) => {
-  const trpc = useTRPC();
-  const { data } = useSuspenseQuery(trpc.library.getOne.queryOptions({
-    productId,
-  }));
+  const [data, setData] = useState<LibraryProductDetail | null>(null);
+
+  useEffect(() => {
+    libraryApi.getProduct(productId).then((res) => {
+      if (res.success && res.data) setData(res.data);
+    });
+  }, [productId]);
+
+  if (!data) return <ProductViewSkeleton />;
 
   return (
     <div className="min-h-screen bg-white">
@@ -36,25 +38,24 @@ export const ProductView = ({ productId }: Props) => {
       </header>
       <section className="max-w-(--breakpoint-xl) mx-auto px-4 lg:px-12 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 lg:gap-16">
-
           <div className="lg:col-span-2">
             <div className="p-4 bg-white rounded-md border gap-4">
-              <Suspense fallback={<ReviewFormSkeleton />}>
-                <ReviewSidebar productId={productId} />
-              </Suspense>
+              <ReviewSidebar
+                productId={productId}
+                initialReview={data.my_review}
+              />
             </div>
           </div>
 
           <div className="lg:col-span-5">
-            {data.content ? 
-              <RichText data={data.content} />
-            : (
+            {data.description ? (
+              <p className="whitespace-pre-wrap">{data.description}</p>
+            ) : (
               <p className="font-medium italic text-muted-foreground">
                 No special content
               </p>
             )}
           </div>
-
         </div>
       </section>
     </div>

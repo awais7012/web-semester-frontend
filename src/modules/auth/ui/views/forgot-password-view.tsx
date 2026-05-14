@@ -7,10 +7,9 @@ import { useState } from "react";
 import { Poppins } from "next/font/google";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
-import { useTRPC } from "@/trpc/client";
+import { authApi } from "@/lib/api-client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,21 +26,25 @@ import { forgotPasswordSchema } from "../../schemas";
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
 export const ForgotPasswordView = () => {
-  const trpc = useTRPC();
   const [sent, setSent] = useState(false);
-
-  const forgotPassword = useMutation(
-    trpc.auth.forgotPassword.mutationOptions({
-      onError: (error) => toast.error(error.message),
-      onSuccess: () => setSent(true),
-    })
-  );
+  const [isPending, setIsPending] = useState(false);
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     mode: "all",
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: "" },
   });
+
+  const onSubmit = async (values: z.infer<typeof forgotPasswordSchema>) => {
+    setIsPending(true);
+    const res = await authApi.forgotPassword(values.email);
+    setIsPending(false);
+    if (res.success) {
+      setSent(true);
+    } else {
+      toast.error(res.error ?? "Something went wrong");
+    }
+  };
 
   if (sent) {
     return (
@@ -64,7 +67,7 @@ export const ForgotPasswordView = () => {
       <div className="bg-[#F4F4F0] h-screen w-full lg:col-span-3 overflow-y-auto">
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((v) => forgotPassword.mutate(v))}
+            onSubmit={form.handleSubmit(onSubmit)}
             className="flex flex-col gap-8 p-4 lg:p-16"
           >
             <div className="flex items-center justify-between mb-8">
@@ -81,7 +84,7 @@ export const ForgotPasswordView = () => {
             <div>
               <h1 className="text-4xl font-medium">Forgot your password?</h1>
               <p className="text-gray-600 mt-2">
-                Enter your email and we'll send you a reset link.
+                Enter your email and we&apos;ll send you a reset link.
               </p>
             </div>
 
@@ -99,13 +102,13 @@ export const ForgotPasswordView = () => {
             />
 
             <Button
-              disabled={forgotPassword.isPending}
+              disabled={isPending}
               type="submit"
               size="lg"
               variant="elevated"
               className="bg-black text-white hover:bg-pink-400 hover:text-primary"
             >
-              Send reset link
+              {isPending ? "Sending…" : "Send reset link"}
             </Button>
           </form>
         </Form>

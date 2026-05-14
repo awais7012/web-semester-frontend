@@ -1,6 +1,6 @@
 import { useQueryStates, parseAsString, parseAsArrayOf, parseAsStringLiteral } from "nuqs";
 
-const sortValues = ["curated", "trending", "hot_and_new"] as const;
+const sortValues = ["curated", "newest", "price_asc", "price_desc"] as const;
 
 const params = {
   search: parseAsString

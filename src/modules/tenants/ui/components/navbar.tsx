@@ -3,10 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { ShoppingCartIcon } from "lucide-react";
-import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { useTRPC } from "@/trpc/client";
+import { tenantsApi, type TenantInfo } from "@/lib/api-client";
 import { generateTenantURL } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -29,24 +29,38 @@ interface Props {
 };
 
 export const Navbar = ({ slug }: Props) => {
-  const trpc = useTRPC();
-  const { data } = useSuspenseQuery(trpc.tenants.getOne.queryOptions({ slug }));
+  const [tenant, setTenant] = useState<TenantInfo | null>(null);
+
+  useEffect(() => {
+    tenantsApi.getOne(slug).then((res) => {
+      if (res.success && res.data) setTenant(res.data);
+    });
+  }, [slug]);
 
   return (
     <nav className="h-20 border-b font-medium bg-white">
       <div className="max-w-(--breakpoint-xl) mx-auto flex justify-between items-center h-full px-4 lg:px-12">
-        <Link href={generateTenantURL(slug)} className="flex items-center gap-2">
-          {data.image?.url && (
-            <Image
-              src={data.image.url}
-              width={32}
-              height={32}
-              className="rounded-full border shrink-0 size-[32px]"
-              alt={slug}
-            />
-          )}
-          <p className="text-xl">{data.name}</p>
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/"
+            className="text-sm text-zinc-500 hover:text-black transition-colors flex items-center gap-1"
+          >
+            ← Funroad
+          </Link>
+          <span className="text-zinc-200">|</span>
+          <Link href={generateTenantURL(slug)} className="flex items-center gap-2">
+            {tenant?.logo_url && (
+              <Image
+                src={tenant.logo_url}
+                width={32}
+                height={32}
+                className="rounded-full border shrink-0 size-[32px]"
+                alt={slug}
+              />
+            )}
+            <p className="text-xl">{tenant?.name ?? slug}</p>
+          </Link>
+        </div>
         <CheckoutButton hideIfEmpty tenantSlug={slug} />
       </div>
     </nav>

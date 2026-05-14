@@ -3,14 +3,14 @@
 import z from "zod";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useState } from "react";
 import { Poppins } from "next/font/google";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
-import { useTRPC } from "@/trpc/client";
+import { authApi } from "@/lib/api-client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,25 +30,25 @@ export const ResetPasswordView = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-
-  const resetPassword = useMutation(
-    trpc.auth.resetPassword.mutationOptions({
-      onError: (error) => toast.error(error.message),
-      onSuccess: async () => {
-        await queryClient.invalidateQueries(trpc.auth.session.queryFilter());
-        toast.success("Password reset! You are now logged in.");
-        router.push("/");
-      },
-    })
-  );
+  const [isPending, setIsPending] = useState(false);
 
   const form = useForm<z.infer<typeof resetPasswordSchema>>({
     mode: "all",
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { token, password: "" },
   });
+
+  const onSubmit = async (values: z.infer<typeof resetPasswordSchema>) => {
+    setIsPending(true);
+    const res = await authApi.resetPassword(values.token, values.password);
+    setIsPending(false);
+    if (res.success) {
+      toast.success("Password reset! You can now sign in.");
+      router.push("/sign-in");
+    } else {
+      toast.error(res.error ?? "Failed to reset password");
+    }
+  };
 
   if (!token) {
     return (
@@ -69,7 +69,7 @@ export const ResetPasswordView = () => {
       <div className="bg-[#F4F4F0] h-screen w-full lg:col-span-3 overflow-y-auto">
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((v) => resetPassword.mutate(v))}
+            onSubmit={form.handleSubmit(onSubmit)}
             className="flex flex-col gap-8 p-4 lg:p-16"
           >
             <div className="flex items-center justify-between mb-8">
@@ -96,13 +96,13 @@ export const ResetPasswordView = () => {
             />
 
             <Button
-              disabled={resetPassword.isPending}
+              disabled={isPending}
               type="submit"
               size="lg"
               variant="elevated"
               className="bg-black text-white hover:bg-pink-400 hover:text-primary"
             >
-              Reset password
+              {isPending ? "Resetting…" : "Reset password"}
             </Button>
           </form>
         </Form>

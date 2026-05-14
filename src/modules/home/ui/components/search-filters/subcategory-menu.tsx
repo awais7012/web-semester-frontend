@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { Category } from "@/payload-types";
-
+import type { Category } from "@/lib/api-client";
 import { CategoriesGetManyOutput } from "@/modules/categories/types";
 
 interface Props {

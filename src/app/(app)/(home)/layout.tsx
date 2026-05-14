@@ -1,36 +1,20 @@
 import { Suspense } from "react";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-
-import { getQueryClient, trpc } from "@/trpc/server";
 
 import { Navbar } from "@/modules/home/ui/components/navbar";
 import { Footer } from "@/modules/home/ui/components/footer";
 import { SearchFilters, SearchFiltersSkeleton } from "@/modules/home/ui/components/search-filters";
 
-interface Props {
-  children: React.ReactNode;
-};
-
-const Layout = async ({ children }: Props) => {
-  const queryClient = getQueryClient();
-  await queryClient.prefetchQuery(
-    trpc.categories.getMany.queryOptions(),
-  );
-
-  return ( 
+export default function HomeLayout({ children }: { children: React.ReactNode }) {
+  return (
     <div className="flex flex-col min-h-screen">
-     <Navbar />
-     <HydrationBoundary state={dehydrate(queryClient)}>
+      <Navbar />
       <Suspense fallback={<SearchFiltersSkeleton />}>
         <SearchFilters />
       </Suspense>
-     </HydrationBoundary>
-     <div className="flex-1 bg-[#F4F4F0]">
+      <div className="flex-1 bg-zinc-50">
         {children}
       </div>
       <Footer />
     </div>
   );
 }
- 
-export default Layout;

@@ -1,10 +1,10 @@
 "use client";
 
-import { InboxIcon } from "lucide-react";
-import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { SearchXIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useTRPC } from "@/trpc/client";
+import { productsApi, type Product } from "@/lib/api-client";
 import { DEFAULT_LIMIT } from "@/constants";
 import { Button } from "@/components/ui/button";
 
@@ -19,36 +19,68 @@ interface Props {
 
 export const ProductList = ({ category, tenantSlug, narrowView }: Props) => {
   const [filters] = useProductFilters();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  const trpc = useTRPC();
-  const { 
-    data, 
-    hasNextPage, 
-    isFetchingNextPage, 
-    fetchNextPage
-  } = useSuspenseInfiniteQuery(trpc.products.getMany.infiniteQueryOptions(
-    {
-      ...filters,
-      category,
-      tenantSlug,
-      limit: DEFAULT_LIMIT,
-    },
-    {
-      getNextPageParam: (lastPage) => {
-        return lastPage.docs.length > 0 ? lastPage.nextPage : undefined;
-      },
+  useEffect(() => {
+    setIsLoading(true);
+    setPage(1);
+    setProducts([]);
+
+    const params: Record<string, string | number> = { limit: DEFAULT_LIMIT, page: 1 };
+    if (filters.search)   params.search    = filters.search;
+    if (filters.minPrice) params.min_price = filters.minPrice;
+    if (filters.maxPrice) params.max_price = filters.maxPrice;
+    if (filters.sort)     params.sort      = filters.sort;
+    if (category)         params.category  = category;
+    if (tenantSlug)       params.tenant    = tenantSlug;
+
+    productsApi.list(params).then((res) => {
+      if (res.success && res.data) {
+        setProducts(res.data);
+        setHasMore((res.pagination?.page ?? 1) < (res.pagination?.totalPages ?? 1));
+      }
+      setIsLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search, filters.minPrice, filters.maxPrice, filters.sort, category, tenantSlug]);
+
+  const loadMore = async () => {
+    setIsFetchingMore(true);
+    const nextPage = page + 1;
+    const params: Record<string, string | number> = { limit: DEFAULT_LIMIT, page: nextPage };
+    if (filters.search)   params.search    = filters.search;
+    if (filters.minPrice) params.min_price = filters.minPrice;
+    if (filters.maxPrice) params.max_price = filters.maxPrice;
+    if (filters.sort)     params.sort      = filters.sort;
+    if (category)         params.category  = category;
+    if (tenantSlug)       params.tenant    = tenantSlug;
+
+    const res = await productsApi.list(params);
+    if (res.success && res.data) {
+      setProducts((prev) => [...prev, ...res.data!]);
+      setPage(nextPage);
+      setHasMore(nextPage < (res.pagination?.totalPages ?? 1));
     }
-  ));
+    setIsFetchingMore(false);
+  };
 
-  if (data.pages?.[0]?.docs.length === 0) {
-    return (
-      <div className="border border-black border-dashed flex items-center justify-center p-8 flex-col gap-y-4 bg-white w-full rounded-lg">
-        <InboxIcon />
-        <p className="text-base font-medium">No products found</p>
-      </div>
-    )
+  if (isLoading) {
+    return <ProductListSkeleton narrowView={narrowView} />;
   }
 
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-20 text-zinc-400">
+        <SearchXIcon className="size-12 mx-auto mb-4 opacity-30" />
+        <p className="text-base font-semibold text-zinc-600">No products found</p>
+        <p className="text-sm mt-1">Try adjusting your filters or search term.</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -56,25 +88,25 @@ export const ProductList = ({ category, tenantSlug, narrowView }: Props) => {
         "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4",
         narrowView && "lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3"
       )}>
-        {data?.pages.flatMap((page) => page.docs).map((product) => (
+        {products.map((product) => (
           <ProductCard
             key={product.id}
-            id={product.id}
+            id={String(product.id)}
             name={product.name}
-            imageUrl={product.image?.url}
-            tenantSlug={product.tenant?.slug}
-            tenantImageUrl={product.tenant?.image?.url}
-            reviewRating={product.reviewRating}
-            reviewCount={product.reviewCount}
+            imageUrl={product.image_url ?? undefined}
+            tenantSlug={product.tenant_slug}
+            tenantName={product.tenant_name}
+            reviewRating={product.avg_rating}
+            reviewCount={product.review_count}
             price={product.price}
           />
         ))}
       </div>
       <div className="flex justify-center pt-8">
-        {hasNextPage && (
+        {hasMore && (
           <Button
-            disabled={isFetchingNextPage}
-            onClick={() => fetchNextPage()}
+            disabled={isFetchingMore}
+            onClick={loadMore}
             className="font-medium disabled:opacity-50 text-base bg-white"
             variant="elevated"
           >

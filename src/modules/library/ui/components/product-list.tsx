@@ -1,63 +1,82 @@
 "use client";
 
-import { InboxIcon } from "lucide-react";
-import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ShoppingBagIcon } from "lucide-react";
 
-import { useTRPC } from "@/trpc/client";
+import { libraryApi, type LibraryProduct } from "@/lib/api-client";
 import { DEFAULT_LIMIT } from "@/constants";
 import { Button } from "@/components/ui/button";
 
 import { ProductCard, ProductCardSkeleton } from "./product-card";
 
 export const ProductList = () => {
-  const trpc = useTRPC();
-  const { 
-    data, 
-    hasNextPage, 
-    isFetchingNextPage, 
-    fetchNextPage
-  } = useSuspenseInfiniteQuery(trpc.library.getMany.infiniteQueryOptions(
-    {
-      limit: DEFAULT_LIMIT,
-    },
-    {
-      getNextPageParam: (lastPage) => {
-        return lastPage.docs.length > 0 ? lastPage.nextPage : undefined;
-      },
-    }
-  ));
+  const [products, setProducts] = useState<LibraryProduct[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  if (data.pages?.[0]?.docs.length === 0) {
-    return (
-      <div className="border border-black border-dashed flex items-center justify-center p-8 flex-col gap-y-4 bg-white w-full rounded-lg">
-        <InboxIcon />
-        <p className="text-base font-medium">No products found</p>
-      </div>
-    )
+  useEffect(() => {
+    libraryApi.list({ page: 1, limit: DEFAULT_LIMIT }).then((res) => {
+      if (res.success && res.data) {
+        setProducts(res.data);
+        setHasMore((res.pagination?.page ?? 1) < (res.pagination?.totalPages ?? 1));
+      }
+      setIsLoading(false);
+    });
+  }, []);
+
+  const loadMore = async () => {
+    setIsFetchingMore(true);
+    const nextPage = page + 1;
+    const res = await libraryApi.list({ page: nextPage, limit: DEFAULT_LIMIT });
+    if (res.success && res.data) {
+      setProducts((prev) => [...prev, ...res.data!]);
+      setPage(nextPage);
+      setHasMore(nextPage < (res.pagination?.totalPages ?? 1));
+    }
+    setIsFetchingMore(false);
+  };
+
+  if (isLoading) {
+    return <ProductListSkeleton />;
   }
 
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-24 text-zinc-400">
+        <ShoppingBagIcon className="size-14 mx-auto mb-4 opacity-20" />
+        <p className="text-lg font-semibold text-zinc-600">No purchases yet</p>
+        <p className="text-sm mt-1">Products you buy will appear here.</p>
+        <Link href="/" className="inline-block mt-6 bg-black text-white px-6 py-3 rounded-xl font-semibold hover:bg-pink-400 hover:text-black transition-colors text-sm">
+          Browse marketplace
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-        {data?.pages.flatMap((page) => page.docs).map((product) => (
+        {products.map((product) => (
           <ProductCard
-            key={product.id}
-            id={product.id}
+            key={product.order_id}
+            id={String(product.id)}
             name={product.name}
-            imageUrl={product.image?.url}
-            tenantSlug={product.tenant?.slug}
-            tenantImageUrl={product.tenant?.image?.url}
-            reviewRating={product.reviewRating}
-            reviewCount={product.reviewCount}
+            imageUrl={product.image_url}
+            tenantSlug={product.tenant_slug}
+            tenantImageUrl={null}
+            reviewRating={product.avg_rating}
+            reviewCount={product.review_count}
           />
         ))}
       </div>
       <div className="flex justify-center pt-8">
-        {hasNextPage && (
+        {hasMore && (
           <Button
-            disabled={isFetchingNextPage}
-            onClick={() => fetchNextPage()}
+            disabled={isFetchingMore}
+            onClick={loadMore}
             className="font-medium disabled:opacity-50 text-base bg-white"
             variant="elevated"
           >

@@ -4,31 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircleIcon, XCircleIcon, LoaderIcon } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
 
-import { useTRPC } from "@/trpc/client";
+import { authApi } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
 export const VerifyEmailView = () => {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
-  const trpc = useTRPC();
-
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
-
-  const verifyEmail = useMutation(
-    trpc.auth.verifyEmail.mutationOptions({
-      onSuccess: (data) => {
-        setStatus("success");
-        setMessage(data.message);
-      },
-      onError: (error) => {
-        setStatus("error");
-        setMessage(error.message);
-      },
-    })
-  );
 
   useEffect(() => {
     if (!token) {
@@ -36,8 +20,16 @@ export const VerifyEmailView = () => {
       setMessage("No verification token found in the link.");
       return;
     }
-    verifyEmail.mutate({ token });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    authApi.verifyEmail(token).then((res) => {
+      if (res.success) {
+        setStatus("success");
+        setMessage(res.data?.message ?? "Email verified!");
+      } else {
+        setStatus("error");
+        setMessage(res.error ?? "Verification failed");
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

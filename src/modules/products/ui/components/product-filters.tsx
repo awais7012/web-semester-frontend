@@ -67,12 +67,16 @@ export const ProductFilters = () => {
   };
 
   return (
-    <div className="border rounded-md bg-white">
-      <div className="p-4 border-b flex items-center justify-between">
-        <p className="font-medium">Filters</p>
+    <div className="rounded-2xl border border-zinc-100 bg-white shadow-sm overflow-hidden">
+      <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
+        <p className="font-semibold text-sm text-zinc-900">Filters</p>
         {hasAnyFilters && (
-          <button className="underline cursor-pointer" onClick={() => onClear()} type="button">
-            Clear
+          <button
+            className="text-xs text-pink-500 hover:text-pink-700 font-medium transition-colors"
+            onClick={() => onClear()}
+            type="button"
+          >
+            Clear all
           </button>
         )}
       </div>

@@ -1,11 +1,12 @@
+"use client";
+
 import { z } from "zod";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useTRPC } from "@/trpc/client";
+import { reviewsApi, type Review } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StarPicker } from "@/components/star-picker";
@@ -17,68 +18,43 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-import { ReviewsGetOneOutput } from "@/modules/reviews/types";
-
 interface Props {
   productId: string;
-  initialData?: ReviewsGetOneOutput;
+  initialData?: Review | null;
+  onReviewSaved?: (review: Review) => void;
 }
+
 
 const formSchema = z.object({
   rating: z.number().min(1, { message: "Rating is required" }).max(5),
-  description: z.string().min(1, { message: "Description is required" }),
+  comment: z.string().min(1, { message: "Description is required" }),
 });
 
-export const ReviewForm = ({ productId, initialData }: Props) => {
+export const ReviewForm = ({ productId, initialData, onReviewSaved }: Props) => {
   const [isPreview, setIsPreview] = useState(!!initialData);
-
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const createReview = useMutation(trpc.reviews.create.mutationOptions({
-    onSuccess: () => {
-      queryClient.invalidateQueries(trpc.reviews.getOne.queryOptions({
-        productId,
-      }))
-      setIsPreview(true);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  }))
-  const updateReview = useMutation(trpc.reviews.update.mutationOptions({
-    onSuccess: () => {
-      queryClient.invalidateQueries(trpc.reviews.getOne.queryOptions({
-        productId,
-      }))
-      setIsPreview(true);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  }))
+  const [isPending, setIsPending] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       rating: initialData?.rating ?? 0,
-      description: initialData?.description ?? "",
+      comment: initialData?.comment ?? "",
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (initialData) {
-      updateReview.mutate({
-        reviewId: initialData.id,
-        rating: values.rating,
-        description: values.description,
-      })
-    } else {
-      createReview.mutate({
-        productId,
-        rating: values.rating,
-        description: values.description,
-      })
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsPending(true);
+    const res = initialData?.id
+      ? await reviewsApi.update(initialData.id, { rating: values.rating, comment: values.comment })
+      : await reviewsApi.create({ product_id: Number(productId), rating: values.rating, comment: values.comment });
+    setIsPending(false);
+
+    if (!res.success || !res.data) {
+      toast.error(res.error ?? "Failed to post review");
+      return;
     }
+    onReviewSaved?.(res.data);
+    setIsPreview(true);
   };
 
   return (
@@ -108,7 +84,7 @@ export const ReviewForm = ({ productId, initialData }: Props) => {
         />
         <FormField
           control={form.control}
-          name="description"
+          name="comment"
           render={({ field }) => (
             <FormItem>
               <FormControl>
@@ -125,12 +101,12 @@ export const ReviewForm = ({ productId, initialData }: Props) => {
         {!isPreview && (
           <Button
             variant="elevated"
-            disabled={createReview.isPending || updateReview.isPending}
+            disabled={isPending}
             type="submit"
             size="lg"
             className="bg-black text-white hover:bg-pink-400 hover:text-primary w-fit"
           >
-            {initialData ? "Update review" : "Post review"}
+            {isPending ? "Posting…" : "Post review"}
           </Button>
         )}
       </form>
@@ -152,14 +128,9 @@ export const ReviewForm = ({ productId, initialData }: Props) => {
 export const ReviewFormSkeleton = () => {
   return (
     <div className="flex flex-col gap-y-4">
-      <p className="font-medium">
-       Liked it? Give it a rating
-      </p>
+      <p className="font-medium">Liked it? Give it a rating</p>
       <StarPicker disabled />
-      <Textarea
-        placeholder="Want to leave a written review?"
-        disabled
-      />
+      <Textarea placeholder="Want to leave a written review?" disabled />
       <Button
         variant="elevated"
         disabled
@@ -167,8 +138,8 @@ export const ReviewFormSkeleton = () => {
         size="lg"
         className="bg-black text-white hover:bg-pink-400 hover:text-primary w-fit"
       >
-       Post review
+        Post review
       </Button>
     </div>
-  )
-}
+  );
+};

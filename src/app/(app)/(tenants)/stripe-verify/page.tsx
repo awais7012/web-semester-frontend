@@ -1,31 +1,33 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { LoaderIcon } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-import { useTRPC } from "@/trpc/client";
+import { vendorApi } from "@/lib/api-client";
 
 const Page = () => {
-  const trpc = useTRPC();
-  const { mutate: verify } = useMutation(trpc.checkout.verify.mutationOptions({
-    onSuccess: (data) => {
-      window.location.href = data.url;
-    },
-    onError: () => {
-      window.location.href = "/";
-    },
-  }));
+  const router = useRouter();
 
   useEffect(() => {
-    verify();
-  }, [verify]);
+    vendorApi.markVerified().then((res) => {
+      if (res.success) {
+        toast.success("Store verified!");
+        router.push("/vendor/dashboard");
+      } else {
+        toast.error(res.error ?? "Verification failed");
+        router.push("/vendor/settings");
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return ( 
+  return (
     <div className="flex min-h-screen items-center justify-center">
       <LoaderIcon className="animate-spin text-muted-foreground" />
     </div>
   );
-}
- 
+};
+
 export default Page;
