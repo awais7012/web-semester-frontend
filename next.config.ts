@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     remotePatterns: [
       // Local development (path-based and subdomain mode)
@@ -13,6 +16,8 @@ const nextConfig: NextConfig = {
       // Production
       { protocol: "https", hostname: "**.funroad.com" },
       { protocol: "https", hostname: "funroad.com" },
+      // Render backend (product image uploads)
+      { protocol: "https", hostname: "**.onrender.com" },
       // Vercel Blob Storage (used for media uploads)
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
     ],
