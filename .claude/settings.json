@@ -12,7 +12,8 @@
       "Bash(grep -rn '\\\\$' /Users/apple/coding/next15-multitenant-ecommerce/src/components/admin/top-products.tsx /Users/apple/coding/next15-multitenant-ecommerce/src/components/admin/recent-orders-table.tsx)",
       "Bash(grep -rn '\"\\\\$\\\\|`\\\\$\\\\|\\\\$\\\\${' /Users/apple/coding/next15-multitenant-ecommerce/src --include=\"*.tsx\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Scripts:', json.dumps\\(d.get\\('scripts',{}\\), indent=2\\)\\); print\\('Main:', d.get\\('main',''\\)\\)\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

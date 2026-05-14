@@ -1,0 +1,16 @@
+services:
+  - type: web_service
+    name: multitenant-ecommerce-backend
+    env: node
+    branch: main
+    root: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+
+  - type: web_service
+    name: multitenant-ecommerce-frontend
+    env: node
+    branch: main
+    root: .
+    buildCommand: npm install && npm run build
+    startCommand: npm start
