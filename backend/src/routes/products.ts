@@ -32,7 +32,6 @@ router.get("/", optionalAuth, async (req: AuthRequest, res: Response): Promise<v
   if (!isAdmin) conditions.push("p.is_private = 0");
 
   // Scope to tenant only when a specific tenant is requested (tenant store page)
-  const tenantId = req.tenantId ?? (tenant ? null : null);
   if (req.tenantId) {
     conditions.push("p.tenant_id = ?");
     params.push(req.tenantId);

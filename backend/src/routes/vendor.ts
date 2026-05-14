@@ -6,7 +6,9 @@ import { verifyToken } from "../middleware/auth";
 import { checkRole } from "../middleware/role";
 import { AuthRequest } from "../types/index";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2026-04-22.dahlia",
+});
 
 const router = Router();
 router.use(verifyToken, checkRole("vendor", "admin"));

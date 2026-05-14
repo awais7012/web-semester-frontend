@@ -28,7 +28,7 @@ export async function verifyToken(req: AuthRequest, res: Response, next: NextFun
 
   let payload: JwtPayload;
   try {
-    payload = jwt.verify(token, secret) as JwtPayload;
+    payload = jwt.verify(token, secret) as unknown as JwtPayload;
   } catch {
     res.status(401).json({ success: false, error: "Invalid or expired token" });
     return;
@@ -64,7 +64,10 @@ export function optionalAuth(req: AuthRequest, _res: Response, next: NextFunctio
   if (!secret) return next();
 
   try {
-    req.user = jwt.verify(token, secret) as JwtPayload;
+    const verified = jwt.verify(token, secret) as unknown;
+    if (typeof verified !== "string") {
+      req.user = verified as JwtPayload;
+    }
   } catch {
     // token invalid — continue as unauthenticated
   }

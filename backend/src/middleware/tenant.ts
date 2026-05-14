@@ -13,7 +13,7 @@ import { AuthRequest } from "../types/index";
  */
 export async function setTenantContext(
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {

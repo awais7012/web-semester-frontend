@@ -6,7 +6,9 @@ import { verifyToken, optionalAuth } from "../middleware/auth";
 import { setTenantContext } from "../middleware/tenant";
 import { AuthRequest } from "../types/index";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2026-04-22.dahlia",
+});
 const router = Router();
 
 // POST /api/checkout/session — create a Stripe Checkout Session
@@ -49,7 +51,7 @@ router.post("/session", verifyToken, setTenantContext, async (req: AuthRequest, 
       ? `http://${process.env.ROOT_DOMAIN}`
       : "http://localhost:3000";
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = (products as RowDataPacket[]).map((p) => ({
+    const lineItems: any[] = (products as RowDataPacket[]).map((p) => ({
       price_data: {
         currency: "pkr",
         product_data: { name: p.name as string },
@@ -63,7 +65,7 @@ router.post("/session", verifyToken, setTenantContext, async (req: AuthRequest, 
       0
     );
 
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    const sessionParams: any = {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
@@ -115,7 +117,7 @@ router.post("/verify", optionalAuth, setTenantContext, async (req: AuthRequest, 
       return;
     }
 
-    let session: Stripe.Checkout.Session;
+    let session: any;
     try {
       session = await stripe.checkout.sessions.retrieve(session_id);
     } catch {
