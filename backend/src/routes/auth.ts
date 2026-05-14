@@ -350,7 +350,7 @@ router.post("/reset-password", async (req: Request, res: Response): Promise<void
 function signToken(payload: JwtPayload): string {
   const secret = process.env.JWT_SECRET!;
   const expiresIn = (process.env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"]) ?? "7d";
-  return jwt.sign(payload, secret, { expiresIn });
+  return jwt.sign(payload as any, secret, { expiresIn });
 }
 
 function setAuthCookie(res: Response, token: string): void {

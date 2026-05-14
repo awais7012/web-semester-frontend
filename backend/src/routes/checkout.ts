@@ -61,7 +61,7 @@ router.post("/session", verifyToken, setTenantContext, async (req: AuthRequest, 
     }));
 
     const totalCents = lineItems.reduce(
-      (sum, item) => sum + (item.price_data!.unit_amount! * (item.quantity ?? 1)),
+      (sum: number, item: any) => sum + (item.price_data!.unit_amount! * (item.quantity ?? 1)),
       0
     );
 
@@ -147,7 +147,7 @@ router.post("/verify", optionalAuth, setTenantContext, async (req: AuthRequest, 
       priceMap[p.id] = Number(p.price);
     }
 
-    const total = ids.reduce((sum, id) => sum + (priceMap[id] ?? 0), 0);
+    const total = ids.reduce((sum: number, id: number) => sum + (priceMap[id] ?? 0), 0);
 
     const conn = await pool.getConnection();
     try {

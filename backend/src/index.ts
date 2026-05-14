@@ -21,7 +21,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")
 
 app.use(
   cors({
-    origin: (origin, cb) => {
+    origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
       // allow server-to-server (no origin) or listed origins
       if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
       cb(new Error(`CORS: ${origin} not allowed`));
@@ -57,13 +57,13 @@ if (process.env.NODE_ENV !== "test") {
       PATCH:  "\x1b[35m\x1b[1m",
       DELETE: "\x1b[31m\x1b[1m",
     };
-    morgan.token("cmethod", (req) => { const m = req.method ?? "?"; return `${methodColors[m] ?? ""}${m.padEnd(6)}${R}`; });
-    morgan.token("cstatus", (_req, res) => {
+    morgan.token("cmethod", (req: Request) => { const m = req.method ?? "?"; return `${methodColors[m] ?? ""}${m.padEnd(6)}${R}`; });
+    morgan.token("cstatus", (_req: Request, res: Response) => {
       const s = res.statusCode;
       const c = s >= 500 ? "\x1b[31m\x1b[1m" : s >= 400 ? "\x1b[33m\x1b[1m" : s >= 300 ? "\x1b[36m\x1b[1m" : "\x1b[32m\x1b[1m";
       return `${c}${s}${R}`;
     });
-    app.use(morgan((tokens, req, res) => {
+    app.use(morgan((tokens: any, req: Request, res: Response) => {
       const sep    = `\x1b[90m${"─".repeat(55)}${R}`;
       const method = tokens["cmethod"]!(req, res) ?? req.method;
       const url    = `\x1b[36m${tokens.url!(req, res) ?? ""}${R}`;
