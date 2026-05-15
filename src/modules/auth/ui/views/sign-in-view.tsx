@@ -178,6 +178,7 @@ export const SignInView = () => {
                       <FormControl>
                         <Input
                           {...field}
+                          autoFocus
                           maxLength={6}
                           placeholder="000000"
                           autoComplete="one-time-code"

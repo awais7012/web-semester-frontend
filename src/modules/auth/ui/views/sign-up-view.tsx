@@ -211,6 +211,7 @@ export const SignUpView = ({ initialRole = "user" }: { initialRole?: "user" | "v
                       <FormControl>
                         <Input
                           {...field}
+                          autoFocus
                           maxLength={6}
                           placeholder="000000"
                           autoComplete="one-time-code"
