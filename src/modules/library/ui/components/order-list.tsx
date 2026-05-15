@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { PackageIcon, TruckIcon, CheckCircle2Icon, ClockIcon, XCircleIcon, CheckIcon } from "lucide-react";
 import { ordersApi, type Order } from "@/lib/api-client";
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: ComponentType<{ className?: string }> }> = {
   pending:    { label: "Pending",    color: "text-yellow-600 bg-yellow-50 ring-yellow-200",  icon: ClockIcon },
   processing: { label: "Processing", color: "text-blue-600 bg-blue-50 ring-blue-200",        icon: PackageIcon },
   shipped:    { label: "Shipped",    color: "text-violet-600 bg-violet-50 ring-violet-200",  icon: TruckIcon },
@@ -18,10 +18,10 @@ export const OrderList = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    ordersApi.list({ limit: 50 }).then((res) => {
-      if (res.success && res.data) setOrders(res.data);
-      setIsLoading(false);
-    });
+    ordersApi.list({ limit: 50 })
+      .then((res) => { if (res.success && res.data) setOrders(res.data); })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
   }, []);
 
   if (isLoading) {
