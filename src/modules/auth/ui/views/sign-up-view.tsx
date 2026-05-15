@@ -3,7 +3,7 @@
 import z from "zod";
 import Link from "next/link";
 import { toast } from "sonner";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Poppins } from "next/font/google";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -90,11 +90,13 @@ export const SignUpView = ({ initialRole = "user" }: { initialRole?: "user" | "v
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingRole, setPendingRole] = useState<"user" | "vendor">("user");
   const [formError, setFormError] = useState<string | null>(null);
+  const [otpValue, setOtpValue] = useState("");
   const otpInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (step === "otp") {
-      const t = setTimeout(() => otpInputRef.current?.focus(), 100);
+      setOtpValue("");
+      const t = setTimeout(() => otpInputRef.current?.focus(), 150);
       return () => clearTimeout(t);
     }
   }, [step]);
@@ -103,12 +105,6 @@ export const SignUpView = ({ initialRole = "user" }: { initialRole?: "user" | "v
     mode: "all",
     resolver: zodResolver(registerSchema),
     defaultValues: { email: "", password: "", username: "", storeName: "" },
-  });
-
-  const otpForm = useForm<OtpForm>({
-    mode: "all",
-    resolver: zodResolver(otpSchema),
-    defaultValues: { otp: "" },
   });
 
   const username = registerForm.watch("username");
@@ -144,11 +140,12 @@ export const SignUpView = ({ initialRole = "user" }: { initialRole?: "user" | "v
     }
   };
 
-  const onVerifyOtp = async (values: OtpForm) => {
+  const onVerifyOtp = useCallback(async () => {
+    if (otpValue.length !== 6) return;
     setIsPending(true);
     setFormError(null);
     try {
-      const res = await authApi.verifyOtp(pendingEmail, values.otp);
+      const res = await authApi.verifyOtp(pendingEmail, otpValue);
 
       if (!res.success || !res.data) {
         setFormError(res.error ?? "Invalid code. Please try again.");
@@ -169,7 +166,7 @@ export const SignUpView = ({ initialRole = "user" }: { initialRole?: "user" | "v
     } finally {
       setIsPending(false);
     }
-  };
+  }, [otpValue, pendingEmail, pendingRole, router]);
 
   const onResendOtp = async () => {
     try {
@@ -208,42 +205,37 @@ export const SignUpView = ({ initialRole = "user" }: { initialRole?: "user" | "v
               </div>
             )}
 
-            <Form {...otpForm}>
-              <form onSubmit={otpForm.handleSubmit(onVerifyOtp)} className="space-y-5">
-                <FormField
-                  control={otpForm.control}
-                  name="otp"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-zinc-700">Verification code</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          ref={otpInputRef}
-                          maxLength={6}
-                          placeholder="000000"
-                          autoComplete="one-time-code"
-                          inputMode="numeric"
-                          className="text-3xl tracking-[0.6em] text-center font-mono h-16 border-2 border-zinc-200 rounded-xl focus:border-black transition-colors"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-1.5">Verification code</label>
+                <input
+                  ref={otpInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  autoComplete="one-time-code"
+                  value={otpValue}
+                  onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onKeyDown={(e) => { if (e.key === "Enter") onVerifyOtp(); }}
+                  className="w-full text-3xl tracking-[0.6em] text-center font-mono h-16 border-2 border-zinc-200 rounded-xl focus:border-black focus:outline-none transition-colors"
                 />
+                {otpValue.length > 0 && otpValue.length < 6 && (
+                  <p className="text-xs text-zinc-400 mt-1">{6 - otpValue.length} digits remaining</p>
+                )}
+              </div>
 
-                <Button
-                  disabled={isPending}
-                  type="submit"
-                  className="w-full h-12 bg-black hover:bg-zinc-800 text-white rounded-xl font-semibold text-base transition-all"
-                >
-                  {isPending
-                    ? <Loader2 className="w-5 h-5 animate-spin" />
-                    : "Verify & continue"
-                  }
-                </Button>
-              </form>
-            </Form>
+              <Button
+                disabled={isPending || otpValue.length !== 6}
+                onClick={onVerifyOtp}
+                className="w-full h-12 bg-black hover:bg-zinc-800 text-white rounded-xl font-semibold text-base transition-all"
+              >
+                {isPending
+                  ? <Loader2 className="w-5 h-5 animate-spin" />
+                  : "Verify & continue"
+                }
+              </Button>
+            </div>
 
             <div className="mt-8 flex flex-col items-center gap-3">
               <button
