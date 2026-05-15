@@ -7,7 +7,7 @@ import { Poppins } from "next/font/google";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, RefreshCw } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -62,6 +62,14 @@ export const SignInView = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [otpEmail, setOtpEmail] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const otpInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (otpEmail) {
+      const t = setTimeout(() => otpInputRef.current?.focus(), 100);
+      return () => clearTimeout(t);
+    }
+  }, [otpEmail]);
 
   const loginForm = useForm<LoginForm>({
     mode: "all",
@@ -178,7 +186,7 @@ export const SignInView = () => {
                       <FormControl>
                         <Input
                           {...field}
-                          autoFocus
+                          ref={otpInputRef}
                           maxLength={6}
                           placeholder="000000"
                           autoComplete="one-time-code"

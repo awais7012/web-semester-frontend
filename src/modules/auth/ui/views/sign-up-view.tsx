@@ -3,7 +3,7 @@
 import z from "zod";
 import Link from "next/link";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Poppins } from "next/font/google";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -90,6 +90,14 @@ export const SignUpView = ({ initialRole = "user" }: { initialRole?: "user" | "v
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingRole, setPendingRole] = useState<"user" | "vendor">("user");
   const [formError, setFormError] = useState<string | null>(null);
+  const otpInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (step === "otp") {
+      const t = setTimeout(() => otpInputRef.current?.focus(), 100);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
 
   const registerForm = useForm<RegisterForm>({
     mode: "all",
@@ -211,7 +219,7 @@ export const SignUpView = ({ initialRole = "user" }: { initialRole?: "user" | "v
                       <FormControl>
                         <Input
                           {...field}
-                          autoFocus
+                          ref={otpInputRef}
                           maxLength={6}
                           placeholder="000000"
                           autoComplete="one-time-code"
