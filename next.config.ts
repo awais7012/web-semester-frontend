@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "funroad.com" },
       // Render backend (product image uploads)
       { protocol: "https", hostname: "**.onrender.com" },
+      // Cloudinary (production image uploads)
+      { protocol: "https", hostname: "res.cloudinary.com" },
       // Vercel Blob Storage (used for media uploads)
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
     ],
