@@ -61,7 +61,7 @@ export const ProductList = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {products.map((product) => (
           <ProductCard
-            key={product.order_id}
+            key={`${product.order_id}-${product.id}`}
             id={String(product.id)}
             name={product.name}
             imageUrl={product.image_url}
