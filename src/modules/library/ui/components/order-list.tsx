@@ -49,14 +49,16 @@ export const OrderList = () => {
       {orders.map((order) => {
         const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
         const Icon = cfg.icon;
-        const firstName = order.items[0]?.product_name ?? "Order";
-        const extra = order.items.length > 1 ? ` +${order.items.length - 1} more` : "";
+        const firstName = order.first_product_name ?? order.items?.[0]?.product_name ?? "Order";
+        const count = order.item_count ?? order.items?.length ?? 1;
+        const extra = count > 1 ? ` +${count - 1} more` : "";
+        const imageUrl = order.first_product_image_url ?? order.items?.[0]?.image_url;
 
         return (
           <div key={order.id} className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-sm">
             <div className="shrink-0 w-12 h-12 bg-zinc-100 rounded-xl flex items-center justify-center">
-              {order.items[0]?.image_url
-                ? <img src={order.items[0].image_url} alt="" className="w-12 h-12 object-cover rounded-xl" />
+              {imageUrl
+                ? <img src={imageUrl} alt="" className="w-12 h-12 object-cover rounded-xl" />
                 : <PackageIcon className="size-5 text-zinc-400" />
               }
             </div>

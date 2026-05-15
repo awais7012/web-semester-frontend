@@ -212,7 +212,12 @@ export interface Order {
   created_at: string;
   buyer_email: string;
   buyer_username: string;
-  items: Array<{
+  // present in list view
+  first_product_name?: string | null;
+  first_product_image_url?: string | null;
+  item_count?: number;
+  // present in detail view
+  items?: Array<{
     id: number;
     product_id: number;
     product_name: string;
